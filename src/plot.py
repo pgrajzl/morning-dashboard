@@ -291,3 +291,37 @@ def plot_regime_correlation(fetch_module):
         plt.show()
 
     interact(_plot, period=Dropdown(options=timeframes, value="6mo", description="Timeframe:"))
+
+def plot_macro(fetch_module):
+    """
+    Interactive plot of a selected macro series, with dropdowns for
+    both the metric and the timeframe.
+    """
+    metrics = list(fetch_module.MACRO_SERIES.keys())
+    timeframes = ["1y", "3y", "5y", "10y", "max"]
+
+    def _plot(metric, period):
+        series = fetch_module.get_macro_series(metric, period=period)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(series.index, series.values, color="#9b59b6", linewidth=1.5)
+        ax.set_title(f"{metric} ({period})", fontsize=13)
+        ax.set_ylabel(metric)
+        ax.set_xlabel("Date")
+        ax.grid(alpha=0.3)
+
+        latest_date = series.index[-1].strftime("%b %Y")
+        latest_val = series.iloc[-1]
+        ax.text(
+            0.01, -0.15, f"Latest ({latest_date}): {latest_val:.2f}",
+            transform=ax.transAxes, fontsize=11, color="#2c3e50"
+        )
+
+        fig.tight_layout()
+        plt.show()
+
+    interact(
+        _plot,
+        metric=Dropdown(options=metrics, value="Unemployment Rate", description="Metric:"),
+        period=Dropdown(options=timeframes, value="5y", description="Timeframe:")
+    )

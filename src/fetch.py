@@ -261,3 +261,44 @@ def get_regime_correlation(period="6mo"):
     returns = closes.pct_change().dropna()
     corr_matrix = returns.corr()
     return corr_matrix
+
+MACRO_SERIES = {
+    "Unemployment Rate": "UNRATE",
+    "CPI (YoY)": "CPIAUCSL",
+    "Core CPI (YoY)": "CPILFESL",
+    "Fed Funds Rate": "FEDFUNDS",
+    "Real GDP Growth": "A191RL1Q225SBEA",
+    "PCE Inflation (YoY)": "PCEPI",
+    "ISM Manufacturing PMI": "MANEMP",  # placeholder proxy - see note below
+    "Consumer Sentiment": "UMCSENT",
+    "Industrial Production": "INDPRO",
+    "Initial Jobless Claims": "ICSA",
+    "Retail Sales": "RSAFS",
+}
+
+def get_macro_series(metric, period="1y"):
+    """
+    Pull a single macro series from FRED by display name, trimmed to the
+    given period. CPI/PCE/GDP series are converted to YoY % change since
+    that's the economically meaningful read, not the raw index level.
+    """
+    series_id = MACRO_SERIES[metric]
+    raw = fred.get_series(series_id).dropna()
+
+    # Convert price-level indices to YoY % change for readability
+    if metric in ["CPI (YoY)", "Core CPI (YoY)", "PCE Inflation (YoY)"]:
+        raw = raw.pct_change(12) * 100  # 12 = months, for monthly series
+        raw = raw.dropna()
+
+    period_map = {
+        "1y": pd.DateOffset(years=1),
+        "3y": pd.DateOffset(years=3),
+        "5y": pd.DateOffset(years=5),
+        "10y": pd.DateOffset(years=10),
+        "max": None,
+    }
+
+    if period == "max":
+        return raw
+    start = raw.index.max() - period_map[period]
+    return raw.loc[raw.index >= start]
