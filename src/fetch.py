@@ -216,3 +216,48 @@ def get_vol_data(period="6mo", include=None):
 
     closes = raw["Close"].rename(columns=labels)
     return closes
+
+GEO_TICKERS = {
+    "Dollar": "DX-Y.NYB",  # US Dollar Index
+    "Gold": "GC=F",        # Gold futures
+    "Oil": "CL=F",         # WTI Crude futures
+}
+
+def get_geo_data(period="6mo"):
+    """
+    Pull Dollar Index, Gold, and Oil futures over a period.
+    Returns a dict of {label: Series}, since these are on very different scales
+    and typically shown as separate plots rather than one combined chart.
+    """
+    raw = yf.download(list(GEO_TICKERS.values()), period=period, auto_adjust=True,
+                       group_by="column", progress=False)
+    closes = raw["Close"]
+
+    label_map = {v: k for k, v in GEO_TICKERS.items()}
+    closes = closes.rename(columns=label_map)
+    return closes
+
+REGIME_TICKERS = {
+    "SPY": "SPY",
+    "TLT": "TLT",
+    "Gold": "GC=F",
+    "Oil": "CL=F",
+    "DXY": "DX-Y.NYB",
+    "VIX": "^VIX",
+}
+
+def get_regime_correlation(period="6mo"):
+    """
+    Pull daily prices for 6 cross-asset proxies, compute daily returns,
+    and return their pairwise correlation matrix over the given period.
+    """
+    raw = yf.download(list(REGIME_TICKERS.values()), period=period, auto_adjust=True,
+                       group_by="column", progress=False)
+    closes = raw["Close"]
+
+    label_map = {v: k for k, v in REGIME_TICKERS.items()}
+    closes = closes.rename(columns=label_map)
+
+    returns = closes.pct_change().dropna()
+    corr_matrix = returns.corr()
+    return corr_matrix

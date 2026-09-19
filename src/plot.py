@@ -230,3 +230,64 @@ def plot_volatility(fetch_module):
         period=Dropdown(options=timeframes, value="6mo", description="Timeframe:"),
         overlay=Dropdown(options=overlay_options, value="None", description="Overlay:")
     )
+
+def plot_geopolitics(fetch_module):
+    """
+    Three side-by-side plots: Dollar Index, Gold, and Oil, over a
+    selectable timeframe.
+    """
+    timeframes = ["1mo", "3mo", "6mo", "ytd", "1y", "5y"]
+    colors = {"Dollar": "#2c3e50", "Gold": "#f1c40f", "Oil": "#34495e"}
+
+    def _plot(period):
+        geo = fetch_module.get_geo_data(period=period)
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+
+        ticker_display = {"Dollar": "DXY", "Gold": "GC=F", "Oil": "WTI"}
+
+        for ax, label in zip(axes, ["Dollar", "Gold", "Oil"]):
+            ax.plot(geo.index, geo[label], color=colors[label], linewidth=1.5)
+            ax.set_title(f"{label} ({ticker_display[label]})", fontsize=13)
+            ax.set_ylabel("Level")
+            ax.grid(alpha=0.3)
+            ax.tick_params(axis="x", rotation=45)
+
+        fig.suptitle(f"Geopolitics ({period})", fontsize=14)
+        fig.tight_layout()
+        plt.show()
+
+    interact(_plot, period=Dropdown(options=timeframes, value="6mo", description="Timeframe:"))
+
+def plot_regime_correlation(fetch_module):
+    """
+    Heatmap of pairwise daily-return correlations across 6 cross-asset
+    proxies (SPY, TLT, Gold, Oil, DXY, VIX), over a selectable timeframe.
+    """
+    timeframes = ["1mo", "3mo", "6mo", "ytd", "1y", "5y"]
+
+    def _plot(period):
+        corr = fetch_module.get_regime_correlation(period=period)
+
+        fig, ax = plt.subplots(figsize=(7, 6))
+        im = ax.imshow(corr.values, cmap="RdBu_r", vmin=-1, vmax=1)
+
+        ax.set_xticks(range(len(corr.columns)))
+        ax.set_yticks(range(len(corr.columns)))
+        ax.set_xticklabels(corr.columns, rotation=45, ha="right")
+        ax.set_yticklabels(corr.columns)
+
+        # Annotate each cell with its correlation value
+        for i in range(len(corr.columns)):
+            for j in range(len(corr.columns)):
+                val = corr.values[i, j]
+                text_color = "white" if abs(val) > 0.5 else "black"
+                ax.text(j, i, f"{val:.2f}", ha="center", va="center",
+                        color=text_color, fontsize=9)
+
+        ax.set_title(f"Cross-Asset Correlation ({period})", fontsize=13)
+        fig.colorbar(im, ax=ax, label="Correlation")
+        fig.tight_layout()
+        plt.show()
+
+    interact(_plot, period=Dropdown(options=timeframes, value="6mo", description="Timeframe:"))
